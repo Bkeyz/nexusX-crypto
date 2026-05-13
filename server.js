@@ -308,28 +308,30 @@ app.get('/api/support/tickets', verifyToken, async (req, res) => {
 
 // ========== ADMIN ROUTES ==========
 
+// ========== ADMIN ROUTES ==========
+
 // Admin login
 app.post('/api/admin/login', async (req, res) => {
     const { email, password } = req.body;
-    
-    const { data: admin } = await supabase
+
+    const { data: admin, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
         .eq('is_admin', true)
         .single();
-    
+
     if (!admin) {
         return res.status(401).json({ error: 'Admin access only' });
     }
-    
+
     const validPassword = await bcrypt.compare(password, admin.password);
     if (!validPassword) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const token = generateToken(admin.id, admin.email, true, true);
-    
+
     res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
 });
 
@@ -337,19 +339,19 @@ app.post('/api/admin/login', async (req, res) => {
 app.get('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
     const { data: users } = await supabase
         .from('users')
-        .select('id, full_name, email, wallet_balance, total_deposited, total_withdrawn, total_profit, is_active, created_at')
+        .select('*')
         .order('created_at', { ascending: false });
-    
+
     const { data: pendingDeposits } = await supabase
         .from('deposits')
         .select('amount')
         .eq('status', 'pending');
-    
+
     const { data: pendingWithdrawals } = await supabase
         .from('withdrawals')
         .select('amount')
         .eq('status', 'pending');
-    
+
     res.json({
         users: users || [],
         stats: {
@@ -360,7 +362,6 @@ app.get('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
         }
     });
 });
-
 // Admin: Add/Deduct Funds / Add Profit to user
 app.post('/api/admin/user-action', verifyToken, requireAdmin, async (req, res) => {
     const { email, amount, note, action } = req.body;
