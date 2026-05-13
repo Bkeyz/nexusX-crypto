@@ -20,6 +20,34 @@
             color: #fff;
         }
 
+        /* Live Crypto Ticker */
+        .ticker {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px 0;
+            overflow: hidden;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+        }
+
+        .ticker-content {
+            display: inline-block;
+            animation: tickerScroll 30s linear infinite;
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .ticker-item {
+            display: inline-block;
+            margin: 0 20px;
+            font-size: 14px;
+        }
+
+        .price-up { color: #00ff88; }
+        .price-down { color: #ff4444; }
+
         /* Navigation */
         .navbar {
             background: rgba(10, 14, 39, 0.95);
@@ -375,6 +403,15 @@
     </style>
 </head>
 <body>
+    <!-- Live Crypto Ticker -->
+    <div class="ticker">
+        <div class="ticker-content" id="tickerContent">
+            <span class="ticker-item"><i class="fab fa-bitcoin"></i> BTC: Loading...</span>
+            <span class="ticker-item"><i class="fab fa-ethereum"></i> ETH: Loading...</span>
+            <span class="ticker-item"><i class="fas fa-dollar-sign"></i> USDT: Loading...</span>
+        </div>
+    </div>
+
     <nav class="navbar">
         <div class="logo">NEXUSX</div>
         <div class="nav-links">
@@ -593,10 +630,35 @@
         <p>&copy; 2026 NexusX. All rights reserved. | Secure Crypto Investment Platform</p>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const API_URL = window.location.origin + '/api';
         let authToken = localStorage.getItem('token');
         let portfolioChart = null;
+
+        // Live Crypto Prices
+        async function fetchCryptoPrices() {
+            try {
+                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether&vs_currencies=usd&include_24hr_change=true');
+                const data = await response.json();
+                
+                const tickerDiv = document.getElementById('tickerContent');
+                if (tickerDiv && data.bitcoin && data.ethereum) {
+                    const btcChange = data.bitcoin.usd_24h_change.toFixed(2);
+                    const ethChange = data.ethereum.usd_24h_change.toFixed(2);
+                    
+                    tickerDiv.innerHTML = `
+                        <span class="ticker-item"><i class="fab fa-bitcoin"></i> BTC: $${data.bitcoin.usd.toLocaleString()} <span class="${btcChange >= 0 ? 'price-up' : 'price-down'}">${btcChange >= 0 ? '▲' : '▼'} ${Math.abs(btcChange)}%</span></span>
+                        <span class="ticker-item"><i class="fab fa-ethereum"></i> ETH: $${data.ethereum.usd.toLocaleString()} <span class="${ethChange >= 0 ? 'price-up' : 'price-down'}">${ethChange >= 0 ? '▲' : '▼'} ${Math.abs(ethChange)}%</span></span>
+                        <span class="ticker-item"><i class="fas fa-dollar-sign"></i> USDT: $1.00 <span class="price-up">▲ 0.00%</span></span>
+                        <span class="ticker-item"><i class="fab fa-bitcoin"></i> BTC: $${data.bitcoin.usd.toLocaleString()} <span class="${btcChange >= 0 ? 'price-up' : 'price-down'}">${btcChange >= 0 ? '▲' : '▼'} ${Math.abs(btcChange)}%</span></span>
+                        <span class="ticker-item"><i class="fab fa-ethereum"></i> ETH: $${data.ethereum.usd.toLocaleString()} <span class="${ethChange >= 0 ? 'price-up' : 'price-down'}">${ethChange >= 0 ? '▲' : '▼'} ${Math.abs(ethChange)}%</span></span>
+                    `;
+                }
+            } catch (error) {
+                console.error('Price fetch error:', error);
+            }
+        }
 
         async function register() {
             const full_name = document.getElementById('regName').value;
@@ -631,7 +693,7 @@
                     authToken = data.token;
                     localStorage.setItem('token', authToken);
                     closeRegisterModal();
-                    showMessage('Account created successfully! Welcome to NexusX!');
+                    alert('Account created successfully! Welcome to NexusX!');
                     loadDashboard();
                     showDashboard();
                 } else {
@@ -667,7 +729,7 @@
                     closeLoginModal();
                     loadDashboard();
                     showDashboard();
-                    showMessage('Welcome back to NexusX!');
+                    alert('Welcome back to NexusX!');
                 } else {
                     errorDiv.textContent = data.error;
                 }
@@ -865,10 +927,6 @@
             loadDashboard();
         }
 
-        function showMessage(msg) {
-            alert(msg);
-        }
-
         function showLoginModal() { document.getElementById('loginModal').classList.add('active'); }
         function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); document.getElementById('loginEmail').value = ''; document.getElementById('loginPassword').value = ''; document.getElementById('loginError').textContent = ''; }
         function showRegisterModal() { document.getElementById('registerModal').classList.add('active'); }
@@ -881,13 +939,16 @@
         function closeSupportModal() { document.getElementById('supportModal').classList.remove('active'); document.getElementById('ticketSubject').value = ''; document.getElementById('ticketMessage').value = ''; document.getElementById('ticketError').textContent = ''; }
         function switchToRegister() { closeLoginModal(); showRegisterModal(); }
         function switchToLogin() { closeRegisterModal(); showLoginModal(); }
-        function logout() { localStorage.removeItem('token'); authToken = null; document.getElementById('landingPage').classList.remove('hidden'); document.getElementById('dashboardPage').classList.add('hidden'); showMessage('Logged out successfully'); }
+        function logout() { localStorage.removeItem('token'); authToken = null; document.getElementById('landingPage').classList.remove('hidden'); document.getElementById('dashboardPage').classList.add('hidden'); alert('Logged out successfully'); }
 
+        // Initialize
+        fetchCryptoPrices();
+        setInterval(fetchCryptoPrices, 30000);
+        
         if (authToken) {
             loadDashboard();
             showDashboard();
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
