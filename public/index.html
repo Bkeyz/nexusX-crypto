@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusX - Premium Crypto Investment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>NexusX - Premium Crypto Investment Platform</title>
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,18 +14,13 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 100%);
             min-height: 100vh;
             color: #fff;
         }
 
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
+        /* Navigation */
         .navbar {
             background: rgba(10, 14, 39, 0.95);
             backdrop-filter: blur(10px);
@@ -61,33 +56,7 @@
             color: #00d4ff;
         }
 
-        .ticker {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 12px 0;
-            overflow: hidden;
-            white-space: nowrap;
-            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-        }
-
-        .ticker-content {
-            display: inline-block;
-            animation: tickerScroll 30s linear infinite;
-        }
-
-        @keyframes tickerScroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-
-        .ticker-item {
-            display: inline-block;
-            margin: 0 20px;
-            font-size: 14px;
-        }
-
-        .price-up { color: #00ff88; }
-        .price-down { color: #ff4444; }
-
+        /* Hero Section */
         .hero {
             text-align: center;
             padding: 60px 20px;
@@ -163,6 +132,7 @@
             background: rgba(0, 212, 255, 0.1);
         }
 
+        /* Features */
         .features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -193,6 +163,7 @@
             margin-bottom: 20px;
         }
 
+        /* Investment Plans */
         .plans-section {
             max-width: 1200px;
             margin: 60px auto;
@@ -243,10 +214,15 @@
             margin: 20px 0;
         }
 
+        /* Dashboard */
         .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 40px 20px;
+        }
+
+        .welcome-header {
+            margin-bottom: 30px;
         }
 
         .balance-grid {
@@ -261,6 +237,12 @@
             border-radius: 20px;
             padding: 25px;
             border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .balance-label {
+            font-size: 14px;
+            color: #8899aa;
+            margin-bottom: 10px;
         }
 
         .balance-amount {
@@ -282,7 +264,12 @@
             margin-top: 30px;
         }
 
-        /* Modal Styles */
+        canvas {
+            max-height: 300px;
+            width: 100%;
+        }
+
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -304,37 +291,26 @@
         .modal-content {
             background: linear-gradient(135deg, #1a1a3e, #0a0e27);
             border-radius: 20px;
-            padding: 40px;
+            padding: 30px;
             width: 90%;
             max-width: 450px;
             border: 1px solid rgba(0, 212, 255, 0.3);
-            text-align: center;
         }
 
         .modal-content h2 {
             margin-bottom: 20px;
+            text-align: center;
         }
 
         .modal-content input, .modal-content select, .modal-content textarea {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             margin-bottom: 15px;
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             background: rgba(0, 0, 0, 0.3);
             color: #fff;
             font-size: 16px;
-        }
-
-        .modal-content input:focus, .modal-content select:focus {
-            outline: none;
-            border-color: #00d4ff;
-        }
-
-        .verification-code-input {
-            text-align: center;
-            font-size: 24px;
-            letter-spacing: 8px;
         }
 
         .close-modal {
@@ -366,13 +342,6 @@
             font-size: 14px;
         }
 
-        .success-msg {
-            color: #00ff88;
-            text-align: center;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
         .footer {
             text-align: center;
             padding: 40px;
@@ -381,12 +350,26 @@
             margin-top: 60px;
         }
 
+        /* Hide sections */
+        .hidden {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .navbar {
                 padding: 15px 20px;
             }
             .hero h1 {
                 font-size: 32px;
+            }
+            .btn-outline {
+                margin-left: 10px;
+            }
+            .stat-card {
+                padding: 15px 20px;
+            }
+            .stat-number {
+                font-size: 24px;
             }
         }
     </style>
@@ -400,10 +383,7 @@
         </div>
     </nav>
 
-    <div class="ticker">
-        <div class="ticker-content" id="tickerContent"></div>
-    </div>
-
+    <!-- Landing Page -->
     <div id="landingPage">
         <div class="hero">
             <h1>Invest in Your Future with NexusX</h1>
@@ -412,45 +392,127 @@
             <button class="btn btn-outline" onclick="showLoginModal()">Sign In</button>
             
             <div class="stats">
-                <div class="stat-card"><div class="stat-number">$2.5B+</div><div>Total Invested</div></div>
-                <div class="stat-card"><div class="stat-number">150K+</div><div>Active Investors</div></div>
-                <div class="stat-card"><div class="stat-number">98%</div><div>Satisfaction Rate</div></div>
+                <div class="stat-card">
+                    <div class="stat-number">$2.5B+</div>
+                    <div>Total Invested</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">150K+</div>
+                    <div>Active Investors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">98%</div>
+                    <div>Satisfaction Rate</div>
+                </div>
             </div>
         </div>
 
         <div class="features">
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-chart-line"></i></div><h3>High Returns</h3><p>Earn up to 8% daily profit with AI-powered trading bots</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><h3>Secure Platform</h3><p>Bank-level security with multi-layer encryption and cold storage</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-bolt"></i></div><h3>Instant Withdrawals</h3><p>Fast and hassle-free withdrawal processing within 24 hours</p></div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>High Returns</h3>
+                <p>Earn up to 8% daily profit with our AI-powered trading bots</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>Secure Platform</h3>
+                <p>Bank-level security with multi-layer encryption and cold storage</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                <h3>Instant Withdrawals</h3>
+                <p>Fast and hassle-free withdrawal processing within 24 hours</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-headset"></i></div>
+                <h3>24/7 Support</h3>
+                <p>Dedicated customer support team available round the clock</p>
+            </div>
         </div>
 
         <div class="plans-section">
             <h2 class="section-title">Investment Plans</h2>
             <div class="plans-grid">
-                <div class="plan-card"><div class="plan-name">Basic</div><div class="plan-price">$100 - $499</div><div>2% daily profit</div><div>30 days duration</div></div>
-                <div class="plan-card"><div class="plan-name">Silver</div><div class="plan-price">$500 - $999</div><div>3% daily profit</div><div>45 days duration</div></div>
-                <div class="plan-card"><div class="plan-name">Gold</div><div class="plan-price">$1,000 - $4,999</div><div>5% daily profit</div><div>60 days duration</div></div>
-                <div class="plan-card"><div class="plan-name">Platinum</div><div class="plan-price">$5,000+</div><div>8% daily profit</div><div>90 days duration</div></div>
+                <div class="plan-card">
+                    <div class="plan-name">Basic</div>
+                    <div class="plan-price">$100 - $499</div>
+                    <div class="plan-feature">2% daily profit</div>
+                    <div class="plan-feature">30 days duration</div>
+                    <div class="plan-feature">Principal included</div>
+                </div>
+                <div class="plan-card">
+                    <div class="plan-name">Silver</div>
+                    <div class="plan-price">$500 - $999</div>
+                    <div class="plan-feature">3% daily profit</div>
+                    <div class="plan-feature">45 days duration</div>
+                    <div class="plan-feature">Principal included</div>
+                </div>
+                <div class="plan-card">
+                    <div class="plan-name">Gold</div>
+                    <div class="plan-price">$1,000 - $4,999</div>
+                    <div class="plan-feature">5% daily profit</div>
+                    <div class="plan-feature">60 days duration</div>
+                    <div class="plan-feature">Principal included</div>
+                </div>
+                <div class="plan-card">
+                    <div class="plan-name">Platinum</div>
+                    <div class="plan-price">$5,000+</div>
+                    <div class="plan-feature">8% daily profit</div>
+                    <div class="plan-feature">90 days duration</div>
+                    <div class="plan-feature">Principal included</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="dashboardPage" style="display: none;">
+    <!-- Dashboard -->
+    <div id="dashboardPage" class="hidden">
         <div class="dashboard-container">
-            <h1>Welcome back, <span id="userName"></span>!</h1>
+            <div class="welcome-header">
+                <h1>Welcome back, <span id="userName"></span>! <i class="fas fa-rocket" style="color: #00d4ff;"></i></h1>
+                <p>Here's your portfolio performance today</p>
+            </div>
+
             <div class="balance-grid">
-                <div class="balance-card"><div class="balance-label">Wallet Balance</div><div class="balance-amount" style="color:#00d4ff;">$<span id="walletBalance">0</span></div></div>
-                <div class="balance-card"><div class="balance-label">Total Deposited</div><div class="balance-amount">$<span id="totalDeposited">0</span></div></div>
-                <div class="balance-card"><div class="balance-label">Total Profit</div><div class="balance-amount" style="color:#00ff88;">$<span id="totalProfit">0</span></div></div>
+                <div class="balance-card">
+                    <div class="balance-label"><i class="fas fa-wallet"></i> Wallet Balance</div>
+                    <div class="balance-amount" style="color: #00d4ff;">$<span id="walletBalance">0</span></div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label"><i class="fas fa-chart-simple"></i> Total Deposited</div>
+                    <div class="balance-amount">$<span id="totalDeposited">0</span></div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label"><i class="fas fa-arrow-trend-down"></i> Total Withdrawn</div>
+                    <div class="balance-amount">$<span id="totalWithdrawn">0</span></div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label"><i class="fas fa-chart-line"></i> Total Profit</div>
+                    <div class="balance-amount" style="color: #00ff88;">$<span id="totalProfit">0</span></div>
+                </div>
             </div>
+
             <div class="action-buttons">
-                <button class="btn btn-primary" onclick="showDepositModal()"><i class="fas fa-arrow-down"></i> Deposit</button>
-                <button class="btn btn-outline" onclick="showWithdrawModal()"><i class="fas fa-arrow-up"></i> Withdraw</button>
-                <button class="btn" style="background:#6b00f4;" onclick="showSupportModal()"><i class="fas fa-headset"></i> Support</button>
-                <button class="btn" style="background:#ff4444;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                <button class="btn btn-primary" onclick="showDepositModal()"><i class="fas fa-arrow-down"></i> Deposit Funds</button>
+                <button class="btn btn-outline" onclick="showWithdrawModal()"><i class="fas fa-arrow-up"></i> Withdraw Funds</button>
+                <button class="btn" style="background: linear-gradient(135deg, #6b00f4, #00d4ff);" onclick="showSupportModal()"><i class="fas fa-headset"></i> Support</button>
+                <button class="btn" style="background: rgba(255,68,68,0.2); border: 1px solid #ff4444;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
-            <div class="chart-container"><canvas id="portfolioChart"></canvas></div>
-            <div id="transactionsContainer" class="chart-container"></div>
+
+            <div class="plans-section" style="margin-top: 0; padding: 0;">
+                <h2 class="section-title">Available Investment Plans</h2>
+                <div class="plans-grid" id="plansContainer"></div>
+            </div>
+
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-line"></i> Portfolio Growth</h3>
+                <canvas id="portfolioChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3><i class="fas fa-clock"></i> Recent Transactions</h3>
+                <div id="transactionsContainer"></div>
+            </div>
         </div>
     </div>
 
@@ -461,8 +523,8 @@
             <h2>Welcome Back</h2>
             <input type="email" id="loginEmail" placeholder="Email address">
             <input type="password" id="loginPassword" placeholder="Password">
-            <button class="btn btn-primary" onclick="login()">Login</button>
-            <div class="switch-link">No account? <span onclick="switchToRegister()">Sign up</span></div>
+            <button class="btn btn-primary" onclick="login()" style="width: 100%;">Login</button>
+            <div class="switch-link">Don't have an account? <span onclick="switchToRegister()">Sign up</span></div>
             <div id="loginError" class="error-msg"></div>
         </div>
     </div>
@@ -474,40 +536,66 @@
             <h2>Create Account</h2>
             <input type="text" id="regName" placeholder="Full name">
             <input type="email" id="regEmail" placeholder="Email address">
-            <input type="password" id="regPassword" placeholder="Password (min 6)">
+            <input type="password" id="regPassword" placeholder="Password (min 6 characters)">
             <input type="password" id="regConfirmPassword" placeholder="Confirm password">
-            <button class="btn btn-primary" onclick="register()">Sign Up</button>
-            <div class="switch-link">Have an account? <span onclick="switchToLogin()">Login</span></div>
+            <button class="btn btn-primary" onclick="register()" style="width: 100%;">Sign Up</button>
+            <div class="switch-link">Already have an account? <span onclick="switchToLogin()">Login</span></div>
             <div id="regError" class="error-msg"></div>
         </div>
     </div>
 
-    <!-- Email Verification Modal -->
-    <div id="verifyModal" class="modal">
+    <!-- Deposit Modal -->
+    <div id="depositModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeVerifyModal()">&times;</span>
-            <i class="fas fa-envelope" style="font-size: 48px; color: #00d4ff; margin-bottom: 20px;"></i>
-            <h2>Verify Your Email</h2>
-            <p>We've sent a 6-digit verification code to <strong id="verifyEmail"></strong></p>
-            <input type="text" id="verifyCode" class="verification-code-input" placeholder="000000" maxlength="6">
-            <button class="btn btn-primary" onclick="verifyEmail()">Verify</button>
-            <div class="switch-link" onclick="resendCode()">Resend code</div>
-            <div id="verifyError" class="error-msg"></div>
-            <div id="verifySuccess" class="success-msg"></div>
+            <span class="close-modal" onclick="closeDepositModal()">&times;</span>
+            <h2>Deposit Funds</h2>
+            <input type="number" id="depositAmount" placeholder="Amount (min $10)">
+            <select id="cryptoType">
+                <option value="USDT">USDT (TRC20)</option>
+                <option value="BTC">Bitcoin (BTC)</option>
+                <option value="ETH">Ethereum (ETH)</option>
+            </select>
+            <button class="btn btn-primary" onclick="submitDeposit()" style="width: 100%;">Submit Deposit Request</button>
+            <div id="depositError" class="error-msg"></div>
         </div>
     </div>
 
-    <!-- Deposit/Withdraw/Support Modals -->
-    <div id="depositModal" class="modal"><div class="modal-content"><span class="close-modal" onclick="closeDepositModal()">&times;</span><h2>Deposit</h2><input type="number" id="depositAmount" placeholder="Amount (min $10)"><select id="cryptoType"><option value="USDT">USDT</option><option value="BTC">Bitcoin</option><option value="ETH">Ethereum</option></select><button class="btn btn-primary" onclick="submitDeposit()">Submit</button><div id="depositError" class="error-msg"></div></div></div>
-    <div id="withdrawModal" class="modal"><div class="modal-content"><span class="close-modal" onclick="closeWithdrawModal()">&times;</span><h2>Withdraw</h2><input type="number" id="withdrawAmount" placeholder="Amount"><input type="text" id="withdrawAddress" placeholder="Wallet Address"><select id="withdrawCrypto"><option value="USDT">USDT</option><option value="BTC">Bitcoin</option><option value="ETH">Ethereum</option></select><button class="btn btn-primary" onclick="submitWithdraw()">Submit</button><div id="withdrawError" class="error-msg"></div></div></div>
-    <div id="supportModal" class="modal"><div class="modal-content"><span class="close-modal" onclick="closeSupportModal()">&times;</span><h2>Support</h2><input type="text" id="ticketSubject" placeholder="Subject"><textarea id="ticketMessage" rows="4" placeholder="Message"></textarea><button class="btn btn-primary" onclick="submitTicket()">Submit</button><div id="ticketError" class="error-msg"></div></div></div>
+    <!-- Withdraw Modal -->
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeWithdrawModal()">&times;</span>
+            <h2>Withdraw Funds</h2>
+            <input type="number" id="withdrawAmount" placeholder="Amount">
+            <input type="text" id="withdrawAddress" placeholder="Wallet Address">
+            <select id="withdrawCrypto">
+                <option value="USDT">USDT (TRC20)</option>
+                <option value="BTC">Bitcoin (BTC)</option>
+                <option value="ETH">Ethereum (ETH)</option>
+            </select>
+            <button class="btn btn-primary" onclick="submitWithdraw()" style="width: 100%;">Submit Withdrawal</button>
+            <div id="withdrawError" class="error-msg"></div>
+        </div>
+    </div>
 
-    <div class="footer"><p>&copy; 2026 NexusX. All rights reserved.</p></div>
+    <!-- Support Modal -->
+    <div id="supportModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeSupportModal()">&times;</span>
+            <h2>Support Ticket</h2>
+            <input type="text" id="ticketSubject" placeholder="Subject">
+            <textarea id="ticketMessage" rows="4" placeholder="Describe your issue in detail..."></textarea>
+            <button class="btn btn-primary" onclick="submitTicket()" style="width: 100%;">Submit Ticket</button>
+            <div id="ticketError" class="error-msg"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 NexusX. All rights reserved. | Secure Crypto Investment Platform</p>
+    </div>
 
     <script>
         const API_URL = window.location.origin + '/api';
         let authToken = localStorage.getItem('token');
-        let pendingEmail = null;
         let portfolioChart = null;
 
         async function register() {
@@ -522,7 +610,7 @@
                 return;
             }
             if (password.length < 6) {
-                errorDiv.textContent = 'Password must be 6+ characters';
+                errorDiv.textContent = 'Password must be at least 6 characters';
                 return;
             }
             if (password !== confirm) {
@@ -531,6 +619,7 @@
             }
 
             errorDiv.textContent = '';
+            
             try {
                 const res = await fetch(`${API_URL}/register`, {
                     method: 'POST',
@@ -539,74 +628,17 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    pendingEmail = email;
-                    closeRegisterModal();
-                    document.getElementById('verifyEmail').textContent = email;
-                    showVerifyModal();
-                } else {
-                    errorDiv.textContent = data.error;
-                }
-            } catch(err) {
-                errorDiv.textContent = 'Network error';
-            }
-        }
-
-        async function verifyEmail() {
-            const code = document.getElementById('verifyCode').value;
-            const errorDiv = document.getElementById('verifyError');
-            const successDiv = document.getElementById('verifySuccess');
-
-            if (!code || code.length !== 6) {
-                errorDiv.textContent = 'Enter 6-digit code';
-                return;
-            }
-
-            errorDiv.textContent = '';
-            successDiv.textContent = 'Verifying...';
-
-            try {
-                const res = await fetch(`${API_URL}/verify-email`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: pendingEmail, code })
-                });
-                const data = await res.json();
-                if (res.ok) {
                     authToken = data.token;
                     localStorage.setItem('token', authToken);
-                    successDiv.textContent = 'Verified! Redirecting...';
-                    setTimeout(() => {
-                        closeVerifyModal();
-                        loadDashboard();
-                        showDashboard();
-                    }, 1500);
-                } else {
-                    errorDiv.textContent = data.error;
-                    successDiv.textContent = '';
-                }
-            } catch(err) {
-                errorDiv.textContent = 'Network error';
-                successDiv.textContent = '';
-            }
-        }
-
-        async function resendCode() {
-            const errorDiv = document.getElementById('verifyError');
-            errorDiv.textContent = 'Sending new code...';
-            try {
-                const res = await fetch(`${API_URL}/resend-verification`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: pendingEmail })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    errorDiv.textContent = 'New code sent! Check your email.';
+                    closeRegisterModal();
+                    showMessage('Account created successfully! Welcome to NexusX!');
+                    loadDashboard();
+                    showDashboard();
                 } else {
                     errorDiv.textContent = data.error;
                 }
             } catch(err) {
-                errorDiv.textContent = 'Network error';
+                errorDiv.textContent = 'Network error: ' + err.message;
             }
         }
 
@@ -614,8 +646,14 @@
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const errorDiv = document.getElementById('loginError');
-            if (!email || !password) { errorDiv.textContent = 'Email and password required'; return; }
+
+            if (!email || !password) {
+                errorDiv.textContent = 'Email and password required';
+                return;
+            }
+
             errorDiv.textContent = '';
+            
             try {
                 const res = await fetch(`${API_URL}/login`, {
                     method: 'POST',
@@ -629,112 +667,212 @@
                     closeLoginModal();
                     loadDashboard();
                     showDashboard();
-                } else if (data.requiresVerification) {
-                    closeLoginModal();
-                    pendingEmail = data.email;
-                    document.getElementById('verifyEmail').textContent = data.email;
-                    showVerifyModal();
+                    showMessage('Welcome back to NexusX!');
                 } else {
                     errorDiv.textContent = data.error;
                 }
-            } catch(err) { errorDiv.textContent = 'Network error'; }
+            } catch(err) {
+                errorDiv.textContent = 'Network error: ' + err.message;
+            }
         }
 
         async function loadDashboard() {
             if (!authToken) return;
+            
             try {
-                const res = await fetch(`${API_URL}/dashboard`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`${API_URL}/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
                 const data = await res.json();
+                
                 if (res.ok) {
-                    document.getElementById('userName').innerHTML = data.user.full_name.split(' ')[0];
-                    document.getElementById('walletBalance').innerHTML = data.user.wallet_balance;
-                    document.getElementById('totalDeposited').innerHTML = data.user.total_deposited || 0;
-                    document.getElementById('totalProfit').innerHTML = data.user.total_profit || 0;
-                    if (portfolioChart) portfolioChart.destroy();
+                    document.getElementById('userName').textContent = data.user.full_name.split(' ')[0];
+                    document.getElementById('walletBalance').textContent = data.user.wallet_balance;
+                    document.getElementById('totalDeposited').textContent = data.user.total_deposited || 0;
+                    document.getElementById('totalWithdrawn').textContent = data.user.total_withdrawn || 0;
+                    document.getElementById('totalProfit').textContent = data.user.total_profit || 0;
+                    
+                    if (portfolioChart) {
+                        portfolioChart.destroy();
+                    }
                     const ctx = document.getElementById('portfolioChart').getContext('2d');
                     portfolioChart = new Chart(ctx, {
                         type: 'line',
-                        data: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], datasets: [{ label: 'Portfolio ($)', data: [0, data.user.wallet_balance * 0.3, data.user.wallet_balance * 0.7, data.user.wallet_balance], borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.1)', fill: true, tension: 0.4 }] },
-                        options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } } }
+                        data: {
+                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                            datasets: [{
+                                label: 'Portfolio Value ($)',
+                                data: [0, data.user.wallet_balance * 0.2, data.user.wallet_balance * 0.4, data.user.wallet_balance * 0.6, data.user.wallet_balance * 0.8, data.user.wallet_balance],
+                                borderColor: '#00d4ff',
+                                backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { labels: { color: '#fff' } }
+                            },
+                            scales: {
+                                y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } },
+                                x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } }
+                            }
+                        }
                     });
+                    
+                    const plansContainer = document.getElementById('plansContainer');
+                    if (data.plans && data.plans.length) {
+                        plansContainer.innerHTML = data.plans.map(plan => `
+                            <div class="plan-card">
+                                <div class="plan-name">${plan.name}</div>
+                                <div class="plan-price">$${plan.min_amount}+</div>
+                                <div class="plan-feature">${plan.daily_profit}% daily profit</div>
+                                <div class="plan-feature">${plan.duration_days} days duration</div>
+                                <div class="plan-feature">Principal included</div>
+                                <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
+                            </div>
+                        `).join('');
+                    }
+                    
                     const txContainer = document.getElementById('transactionsContainer');
                     if (data.transactions && data.transactions.length) {
-                        txContainer.innerHTML = '<h3>Recent Transactions</h3>' + data.transactions.map(tx => `<div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid rgba(255,255,255,0.1);"><span>${tx.type.toUpperCase()}</span><span>$${tx.amount}</span><span style="color:#00ff88;">${tx.status}</span><span>${new Date(tx.created_at).toLocaleDateString()}</span></div>`).join('');
-                    } else { txContainer.innerHTML = '<h3>Recent Transactions</h3><p>No transactions yet.</p>'; }
-                } else if (res.status === 401) { logout(); }
-            } catch(err) { console.error(err); }
+                        txContainer.innerHTML = data.transactions.map(tx => `
+                            <div style="display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <span><i class="fas ${tx.type === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i> ${tx.type.toUpperCase()}</span>
+                                <span>$${tx.amount}</span>
+                                <span style="color: #00ff88;">${tx.status}</span>
+                                <span>${new Date(tx.created_at).toLocaleDateString()}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        txContainer.innerHTML = '<p style="text-align: center; padding: 20px;">No transactions yet. Start your first deposit!</p>';
+                    }
+                } else if (res.status === 401) {
+                    logout();
+                }
+            } catch(err) {
+                console.error('Dashboard error:', err);
+            }
         }
 
         async function submitDeposit() {
             const amount = document.getElementById('depositAmount').value;
             const crypto_type = document.getElementById('cryptoType').value;
-            if (!amount || amount < 10) { document.getElementById('depositError').textContent = 'Minimum $10'; return; }
-            document.getElementById('depositError').textContent = '';
+            const errorDiv = document.getElementById('depositError');
+            
+            if (!amount || amount < 10) {
+                errorDiv.textContent = 'Minimum deposit is $10';
+                return;
+            }
+            
+            errorDiv.textContent = '';
+            
             try {
                 const res = await fetch(`${API_URL}/deposit`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
                     body: JSON.stringify({ amount, crypto_type })
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert(`Send ${crypto_type} to: ${data.address}\n\nDeposit will be confirmed within 24h.`);
+                    alert(`Deposit request submitted!\n\nSend ${crypto_type} to:\n${data.address}\n\nYour deposit will be confirmed within 24 hours.`);
                     closeDepositModal();
                     loadDashboard();
-                } else { document.getElementById('depositError').textContent = data.error; }
-            } catch(err) { document.getElementById('depositError').textContent = 'Network error'; }
+                } else {
+                    errorDiv.textContent = data.error;
+                }
+            } catch(err) {
+                errorDiv.textContent = 'Network error';
+            }
         }
 
         async function submitWithdraw() {
             const amount = document.getElementById('withdrawAmount').value;
             const wallet_address = document.getElementById('withdrawAddress').value;
             const crypto_type = document.getElementById('withdrawCrypto').value;
-            if (!amount || !wallet_address) { document.getElementById('withdrawError').textContent = 'All fields required'; return; }
-            document.getElementById('withdrawError').textContent = '';
+            const errorDiv = document.getElementById('withdrawError');
+            
+            if (!amount || !wallet_address) {
+                errorDiv.textContent = 'Amount and wallet address required';
+                return;
+            }
+            
+            errorDiv.textContent = '';
+            
             try {
                 const res = await fetch(`${API_URL}/withdraw`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
                     body: JSON.stringify({ amount, wallet_address, crypto_type })
                 });
                 const data = await res.json();
-                if (res.ok) { alert('Withdrawal request submitted!'); closeWithdrawModal(); loadDashboard(); }
-                else { document.getElementById('withdrawError').textContent = data.error; }
-            } catch(err) { document.getElementById('withdrawError').textContent = 'Network error'; }
+                if (res.ok) {
+                    alert('Withdrawal request submitted! Processing within 24-48 hours.');
+                    closeWithdrawModal();
+                    loadDashboard();
+                } else {
+                    errorDiv.textContent = data.error;
+                }
+            } catch(err) {
+                errorDiv.textContent = 'Network error';
+            }
         }
 
         async function submitTicket() {
             const subject = document.getElementById('ticketSubject').value;
             const message = document.getElementById('ticketMessage').value;
-            if (!subject || !message) { document.getElementById('ticketError').textContent = 'All fields required'; return; }
-            document.getElementById('ticketError').textContent = '';
+            const errorDiv = document.getElementById('ticketError');
+            
+            if (!subject || !message) {
+                errorDiv.textContent = 'Subject and message required';
+                return;
+            }
+            
+            errorDiv.textContent = '';
+            
             try {
                 const res = await fetch(`${API_URL}/support/ticket`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
                     body: JSON.stringify({ subject, message })
                 });
                 const data = await res.json();
-                if (res.ok) { alert('Ticket submitted!'); closeSupportModal(); }
-                else { document.getElementById('ticketError').textContent = data.error; }
-            } catch(err) { document.getElementById('ticketError').textContent = 'Network error'; }
+                if (res.ok) {
+                    alert('Support ticket submitted! We will respond within 24 hours.');
+                    closeSupportModal();
+                } else {
+                    errorDiv.textContent = data.error;
+                }
+            } catch(err) {
+                errorDiv.textContent = 'Network error';
+            }
         }
 
-        async function fetchCryptoPrices() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
-                const data = await res.json();
-                document.getElementById('tickerContent').innerHTML = `<span class="ticker-item"><i class="fab fa-bitcoin"></i> BTC: $${data.bitcoin.usd.toLocaleString()} <span class="${data.bitcoin.usd_24h_change >= 0 ? 'price-up' : 'price-down'}">${data.bitcoin.usd_24h_change >= 0 ? '▲' : '▼'} ${Math.abs(data.bitcoin.usd_24h_change).toFixed(2)}%</span></span><span class="ticker-item"><i class="fab fa-ethereum"></i> ETH: $${data.ethereum.usd.toLocaleString()} <span class="${data.ethereum.usd_24h_change >= 0 ? 'price-up' : 'price-down'}">${data.ethereum.usd_24h_change >= 0 ? '▲' : '▼'} ${Math.abs(data.ethereum.usd_24h_change).toFixed(2)}%</span></span><span class="ticker-item"><i class="fas fa-dollar-sign"></i> USDT: $1.00</span>`.repeat(2);
-            } catch(e) { console.error(e); }
+        function showDashboard() {
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            loadDashboard();
         }
 
-        function showDashboard() { document.getElementById('landingPage').style.display = 'none'; document.getElementById('dashboardPage').style.display = 'block'; loadDashboard(); }
+        function showMessage(msg) {
+            alert(msg);
+        }
+
         function showLoginModal() { document.getElementById('loginModal').classList.add('active'); }
         function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); document.getElementById('loginEmail').value = ''; document.getElementById('loginPassword').value = ''; document.getElementById('loginError').textContent = ''; }
         function showRegisterModal() { document.getElementById('registerModal').classList.add('active'); }
         function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); document.getElementById('regName').value = ''; document.getElementById('regEmail').value = ''; document.getElementById('regPassword').value = ''; document.getElementById('regConfirmPassword').value = ''; document.getElementById('regError').textContent = ''; }
-        function showVerifyModal() { document.getElementById('verifyModal').classList.add('active'); document.getElementById('verifyCode').value = ''; }
-        function closeVerifyModal() { document.getElementById('verifyModal').classList.remove('active'); document.getElementById('verifyError').textContent = ''; document.getElementById('verifySuccess').textContent = ''; pendingEmail = null; }
         function showDepositModal() { if (!authToken) { showLoginModal(); return; } document.getElementById('depositModal').classList.add('active'); }
         function closeDepositModal() { document.getElementById('depositModal').classList.remove('active'); document.getElementById('depositAmount').value = ''; document.getElementById('depositError').textContent = ''; }
         function showWithdrawModal() { if (!authToken) { showLoginModal(); return; } document.getElementById('withdrawModal').classList.add('active'); }
@@ -743,11 +881,13 @@
         function closeSupportModal() { document.getElementById('supportModal').classList.remove('active'); document.getElementById('ticketSubject').value = ''; document.getElementById('ticketMessage').value = ''; document.getElementById('ticketError').textContent = ''; }
         function switchToRegister() { closeLoginModal(); showRegisterModal(); }
         function switchToLogin() { closeRegisterModal(); showLoginModal(); }
-        function logout() { localStorage.removeItem('token'); authToken = null; document.getElementById('landingPage').style.display = 'block'; document.getElementById('dashboardPage').style.display = 'none'; }
+        function logout() { localStorage.removeItem('token'); authToken = null; document.getElementById('landingPage').classList.remove('hidden'); document.getElementById('dashboardPage').classList.add('hidden'); showMessage('Logged out successfully'); }
 
-        fetchCryptoPrices();
-        setInterval(fetchCryptoPrices, 30000);
-        if (authToken) { loadDashboard(); showDashboard(); }
+        if (authToken) {
+            loadDashboard();
+            showDashboard();
+        }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
