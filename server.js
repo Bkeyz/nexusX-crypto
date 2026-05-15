@@ -18,6 +18,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Force HTTPS – redirect HTTP to HTTPS (fixes mobile SSL error)
+app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https' && process.env.NODE_ENV === 'production') {
+        return res.redirect('https://' + req.headers.host + req.url);
+    }
+    next();
+});
+
 // ========== HELPER FUNCTIONS ==========
 function generateToken(userId, email, isAdmin, isVerified = true) {
     return jwt.sign({ userId, email, isAdmin, isVerified }, JWT_SECRET, { expiresIn: '7d' });
@@ -297,11 +305,9 @@ app.get('/api/support/tickets', verifyToken, async (req, res) => {
     res.json({ tickets: tickets || [] });
 });
 
-// ========== ADMIN ROUTES ==========
-// Admin login with bypass for admin@nexusx.com
+// Admin login – PROPER VERSION with bcrypt
 app.post('/api/admin/login', async (req, res) => {
     const { email, password } = req.body;
-    console.log('Admin login attempt:', email, password);
 
     const { data: admin, error } = await supabase
         .from('users')
@@ -311,56 +317,19 @@ app.post('/api/admin/login', async (req, res) => {
         .single();
 
     if (!admin) {
-        console.log('Admin not found');
         return res.status(401).json({ error: 'Admin access only' });
     }
 
-    // TEMPORARY: Bypass password check for admin@nexusx.com – allows any password
-    if (email === 'admin@nexusx.com') {
-        console.log('Admin login successful (bypass)');
-        const token = generateToken(admin.id, admin.email, true, true);
-        return res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
-    }
-
-    // For other admins (if any), use bcrypt
+    // Proper bcrypt password verification
     const validPassword = await bcrypt.compare(password, admin.password);
     if (!validPassword) {
-        console.log('Invalid password for admin');
         return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const token = generateToken(admin.id, admin.email, true, true);
+
     res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
 });
-
-// Get all users (admin)
-app.get('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
-    const { data: users } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    const { data: pendingDeposits } = await supabase
-        .from('deposits')
-        .select('amount')
-        .eq('status', 'pending');
-
-    const { data: pendingWithdrawals } = await supabase
-        .from('withdrawals')
-        .select('amount')
-        .eq('status', 'pending');
-
-    res.json({
-        users: users || [],
-        stats: {
-            total_users: users?.length || 0,
-            pending_deposits: pendingDeposits?.length || 0,
-            pending_deposits_amount: pendingDeposits?.reduce((sum, d) => sum + d.amount, 0) || 0,
-            pending_withdrawals: pendingWithdrawals?.length || 0
-        }
-    });
-});
-
 // Admin: Add/Deduct Funds / Add Profit to user
 app.post('/api/admin/user-action', verifyToken, requireAdmin, async (req, res) => {
     const { email, amount, note, action } = req.body;
@@ -614,6 +583,90 @@ app.get('/', (req, res) => {
 
 app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+const cron = require('node-cron');
+
+// Daily profit calculation function
+async function calculateDailyProfits() {
+    console.log('🔄 Running daily profit calculation...', new Date().toISOString());
+    
+    // Get all active investments
+    const { data: investments, error } = await supabase
+        .from('user_investments')
+        .select('*, users(id, wallet_balance, total_profit)')
+        .eq('status', 'active');
+    
+    if (error || !investments || investments.length === 0) {
+        console.log('No active investments found');
+        return;
+    }
+    
+    console.log(`📊 Found ${investments.length} active investments`);
+    
+    for (const investment of investments) {
+        // Calculate daily profit: (amount × daily_rate ÷ 100)
+        const dailyProfit = (investment.amount * investment.daily_profit_rate) / 100;
+        
+        // Update user balance
+        const newBalance = (investment.users.wallet_balance || 0) + dailyProfit;
+        const newTotalProfit = (investment.users.total_profit || 0) + dailyProfit;
+        
+        await supabase
+            .from('users')
+            .update({
+                wallet_balance: newBalance,
+                total_profit: newTotalProfit
+            })
+            .eq('id', investment.user_id);
+        
+        // Update investment last profit date
+        await supabase
+            .from('user_investments')
+            .update({ last_profit_date: new Date() })
+            .eq('id', investment.id);
+        
+        // Record transaction
+        await supabase
+            .from('transactions')
+            .insert({
+                user_id: investment.user_id,
+                type: 'profit',
+                amount: dailyProfit,
+                status: 'completed',
+                description: `Daily profit from investment #${investment.id} (${investment.daily_profit_rate}%)`
+            });
+        
+        console.log(`✅ Added $${dailyProfit.toFixed(2)} profit to user ${investment.user_id}`);
+        
+        // Check if investment has expired
+        const endDate = new Date(investment.end_date);
+        if (new Date() >= endDate) {
+            await supabase
+                .from('user_investments')
+                .update({ status: 'completed' })
+                .eq('id', investment.id);
+            console.log(`📅 Investment #${investment.id} has completed`);
+        }
+    }
+    
+    console.log('✅ Daily profit calculation completed');
+}
+
+// Schedule to run daily at 00:01 AM (1 minute after midnight, Nigeria time)
+cron.schedule('1 0 * * *', async () => {
+    console.log('⏰ Running scheduled profit calculation...');
+    await calculateDailyProfits();
+}, {
+    timezone: "Africa/Lagos"
+});
+
+console.log('⏰ Profit calculator scheduled to run daily at 00:01 AM (Nigeria time)');
+
+// Manual trigger for profit calculation (admin only)
+app.post('/api/admin/calculate-profits', verifyToken, requireAdmin, async (req, res) => {
+    await calculateDailyProfits();
+    res.json({ success: true, message: 'Profit calculation triggered' });
 });
 
 // ========== START SERVER ==========
