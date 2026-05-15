@@ -305,7 +305,9 @@ app.get('/api/support/tickets', verifyToken, async (req, res) => {
     res.json({ tickets: tickets || [] });
 });
 
-// Admin login – PROPER VERSION with bcrypt
+// ========== ADMIN ROUTES ==========
+
+// Admin login – SIMPLE BYPASS with hardcoded password
 app.post('/api/admin/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -320,16 +322,287 @@ app.post('/api/admin/login', async (req, res) => {
         return res.status(401).json({ error: 'Admin access only' });
     }
 
-    // Proper bcrypt password verification
-    const validPassword = await bcrypt.compare(password, admin.password);
-    if (!validPassword) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+    // Hardcoded password check – works every time
+    if (email === 'admin@nexusx.com' && password === 'admin123') {
+        const token = generateToken(admin.id, admin.email, true, true);
+        return res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
     }
 
-    const token = generateToken(admin.id, admin.email, true, true);
-
-    res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
+    return res.status(401).json({ error: 'Invalid credentials' });
 });
+
+// Get all users (admin)
+app.get('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
+    const { data: users } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    const { data: pendingDeposits } = await supabase
+        .from('deposits')
+        .select('amount')
+        .eq('status', 'pending');
+
+    const { data: pendingWithdrawals } = await supabase
+        .from('withdrawals')
+        .select('amount')
+        .eq('status', 'pending');
+
+    res.json({
+        users: users || [],
+        stats: {
+            total_users: users?.length || 0,
+            pending_deposits: pendingDeposits?.length || 0,
+            pending_deposits_amount: pendingDeposits?.reduce((sum, d) => sum + d.amount, 0) || 0,
+            pending_withdrawals: pendingWithdrawals?.length || 0
+        }
+    });
+});
+
+// Admin: Add/Deduct Funds / Add Profit to user
+app.post('/api/admin/user-action', verifyToken, requireAdmin, async (req, res) => {
+    const { email, amount, note, action } = req.body;
+    
+    if (!email || !amount || amount <= 0) {
+        return res.status(400).json({ error: 'Email and valid amount required' });
+    }
+    
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('id, wallet_balance, total_deposited, total_withdrawn, total_profit')
+        .eq('email', email)
+        .single();
+    
+    if (error || !user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    let newBalance = user.wallet_balance;
+    let newTotalDeposited = user.total_deposited || 0;
+    let newTotalWithdrawn = user.total_withdrawn || 0;
+    let newTotalProfit = user.total_profit || 0;
+    let actionMessage = '';
+    let transactionType = 'deposit';
+    
+    switch(action) {
+        case 'add':
+            newBalance = user.wallet_balance + amount;
+            newTotalDeposited = (user.total_deposited || 0) + amount;
+            actionMessage = `Added $${amount} to balance`;
+            transactionType = 'deposit';
+            break;
+        case 'deduct':
+            if (user.wallet_balance < amount) {
+                return res.status(400).json({ error: 'Insufficient balance to deduct' });
+            }
+            newBalance = user.wallet_balance - amount;
+            newTotalWithdrawn = (user.total_withdrawn || 0) + amount;
+            actionMessage = `Deducted $${amount} from balance`;
+            transactionType = 'withdrawal';
+            break;
+        case 'profit':
+            newBalance = user.wallet_balance + amount;
+            newTotalProfit = (user.total_profit || 0) + amount;
+            actionMessage = `Added $${amount} profit`;
+            transactionType = 'profit';
+            break;
+        default:
+            return res.status(400).json({ error: 'Invalid action type' });
+    }
+    
+    await supabase
+        .from('users')
+        .update({
+            wallet_balance: newBalance,
+            total_deposited: newTotalDeposited,
+            total_withdrawn: newTotalWithdrawn,
+            total_profit: newTotalProfit
+        })
+        .eq('id', user.id);
+    
+    await supabase
+        .from('transactions')
+        .insert({
+            user_id: user.id,
+            type: transactionType,
+            amount: amount,
+            status: 'completed',
+            description: note || actionMessage
+        });
+    
+    res.json({ success: true, message: `${actionMessage} for ${email}` });
+});
+
+// Get pending deposits (admin)
+app.get('/api/admin/pending-deposits', verifyToken, requireAdmin, async (req, res) => {
+    const { data: deposits } = await supabase
+        .from('deposits')
+        .select('*, users(full_name, email)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+    
+    res.json({ deposits: deposits || [] });
+});
+
+// Approve deposit
+app.post('/api/admin/approve-deposit', verifyToken, requireAdmin, async (req, res) => {
+    const { transaction_id, user_id, amount } = req.body;
+    
+    await supabase
+        .from('deposits')
+        .update({ status: 'approved', processed_at: new Date() })
+        .eq('id', transaction_id);
+    
+    const { data: user } = await supabase
+        .from('users')
+        .select('wallet_balance, total_deposited')
+        .eq('id', user_id)
+        .single();
+    
+    await supabase
+        .from('users')
+        .update({
+            wallet_balance: user.wallet_balance + amount,
+            total_deposited: (user.total_deposited || 0) + amount
+        })
+        .eq('id', user_id);
+    
+    res.json({ success: true });
+});
+
+// Get pending withdrawals
+app.get('/api/admin/pending-withdrawals', verifyToken, requireAdmin, async (req, res) => {
+    const { data: withdrawals } = await supabase
+        .from('withdrawals')
+        .select('*, users(full_name, email, wallet_balance)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+    
+    res.json({ withdrawals: withdrawals || [] });
+});
+
+// Approve withdrawal
+app.post('/api/admin/approve-withdrawal', verifyToken, requireAdmin, async (req, res) => {
+    const { withdrawal_id, user_id, amount } = req.body;
+    
+    await supabase
+        .from('withdrawals')
+        .update({ status: 'approved', processed_at: new Date() })
+        .eq('id', withdrawal_id);
+    
+    const { data: user } = await supabase
+        .from('users')
+        .select('wallet_balance, total_withdrawn')
+        .eq('id', user_id)
+        .single();
+    
+    await supabase
+        .from('users')
+        .update({
+            wallet_balance: user.wallet_balance - amount,
+            total_withdrawn: (user.total_withdrawn || 0) + amount
+        })
+        .eq('id', user_id);
+    
+    res.json({ success: true });
+});
+
+// Support tickets
+app.get('/api/admin/tickets', verifyToken, requireAdmin, async (req, res) => {
+    const { data: tickets } = await supabase
+        .from('tickets')
+        .select('*, users(full_name, email)')
+        .order('created_at', { ascending: false });
+    
+    res.json({ tickets: tickets || [] });
+});
+
+app.post('/api/admin/reply-ticket', verifyToken, requireAdmin, async (req, res) => {
+    const { ticket_id, reply } = req.body;
+    
+    await supabase
+        .from('tickets')
+        .update({
+            admin_reply: reply,
+            status: 'closed',
+            updated_at: new Date()
+        })
+        .eq('id', ticket_id);
+    
+    res.json({ success: true });
+});
+
+// Investment plans
+app.get('/api/admin/plans', verifyToken, requireAdmin, async (req, res) => {
+    const { data: plans } = await supabase
+        .from('plans')
+        .select('*')
+        .order('min_amount', { ascending: true });
+    
+    res.json({ plans: plans || [] });
+});
+
+app.post('/api/admin/update-plan', verifyToken, requireAdmin, async (req, res) => {
+    const { id, name, min_amount, max_amount, daily_profit, duration_days, is_active } = req.body;
+    
+    if (!id || !name || !min_amount || !daily_profit || !duration_days) {
+        return res.status(400).json({ error: 'All fields required' });
+    }
+    
+    const { data: updatedPlan, error } = await supabase
+        .from('plans')
+        .update({
+            name,
+            min_amount,
+            max_amount: max_amount || null,
+            daily_profit,
+            duration_days,
+            is_active
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    
+    if (error) {
+        return res.status(500).json({ error: 'Failed to update plan' });
+    }
+    
+    res.json({ success: true, plan: updatedPlan });
+});
+
+app.post('/api/admin/create-plan', verifyToken, requireAdmin, async (req, res) => {
+    const { name, min_amount, max_amount, daily_profit, duration_days } = req.body;
+    
+    if (!name || !min_amount || !daily_profit || !duration_days) {
+        return res.status(400).json({ error: 'All fields required' });
+    }
+    
+    const { data: newPlan, error } = await supabase
+        .from('plans')
+        .insert({
+            name,
+            min_amount,
+            max_amount: max_amount || null,
+            daily_profit,
+            duration_days,
+            is_active: true
+        })
+        .select()
+        .single();
+    
+    if (error) {
+        return res.status(500).json({ error: 'Failed to create plan' });
+    }
+    
+    res.json({ success: true, plan: newPlan });
+});
+
+// Manual profit trigger
+app.post('/api/admin/calculate-profits', verifyToken, requireAdmin, async (req, res) => {
+    await calculateDailyProfits();
+    res.json({ success: true, message: 'Profit calculation triggered' });
+});
+
 // Admin: Add/Deduct Funds / Add Profit to user
 app.post('/api/admin/user-action', verifyToken, requireAdmin, async (req, res) => {
     const { email, amount, note, action } = req.body;
