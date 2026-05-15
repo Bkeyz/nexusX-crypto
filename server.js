@@ -325,9 +325,7 @@ app.post('/api/admin/login', async (req, res) => {
         return res.status(401).json({ error: 'Admin access only' });
     }
 
-    // FIXED: Compare plain text password (your DB has "admin123" as plain text)
-    const validPassword = (password === admin.password);
-    
+    const validPassword = await bcrypt.compare(password, admin.password);
     if (!validPassword) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -336,7 +334,6 @@ app.post('/api/admin/login', async (req, res) => {
 
     res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
 });
-
 // Get all users (admin) - MOVED OUTSIDE the login route
 app.get('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
     const { data: users } = await supabase
