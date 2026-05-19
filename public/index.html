@@ -470,39 +470,8 @@
         <div class="plans-section">
             <h2 class="section-title">Investment Plans</h2>
             <div class="plans-grid">
-               <div class="plans-grid">
-    <div class="plan-card">
-        <div class="plan-name">Basic</div>
-        <div class="plan-price">$5,000 - $9,999</div>
-        <div class="plan-feature">218% total profit</div>
-        <div class="plan-feature">60 days duration</div>
-        <div class="plan-feature">Principal included</div>
-        <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
-    </div>
-    <div class="plan-card">
-        <div class="plan-name">Silver</div>
-        <div class="plan-price">$10,000 - $29,999</div>
-        <div class="plan-feature">228% total profit</div>
-        <div class="plan-feature">60 days duration</div>
-        <div class="plan-feature">Principal included</div>
-        <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
-    </div>
-    <div class="plan-card">
-        <div class="plan-name">Gold</div>
-        <div class="plan-price">$30,000 - $49,999</div>
-        <div class="plan-feature">240% total profit</div>
-        <div class="plan-feature">60 days duration</div>
-        <div class="plan-feature">Principal included</div>
-        <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
-    </div>
-    <div class="plan-card">
-        <div class="plan-name">Platinum</div>
-        <div class="plan-price">$50,000+</div>
-        <div class="plan-feature">255% total profit</div>
-        <div class="plan-feature">60 days duration</div>
-        <div class="plan-feature">Principal included</div>
-        <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
-    </div>
+               <div class="plans-grid" id="plansContainer">
+    <div class="loading">Loading investment plans...</div>
 </div>
         </div>
     </div>
@@ -955,5 +924,44 @@
             showDashboard();
         }
     </script>
+<script>
+// Function to load investment plans dynamically
+async function loadInvestmentPlans() {
+    try {
+        const API_URL = window.location.origin + '/api';
+        const response = await fetch(API_URL + '/dashboard');
+        const data = await response.json();
+
+        const container = document.getElementById('plansContainer');
+        if (container && data.plans && data.plans.length) {
+            const sorted = data.plans.sort((a, b) => a.min_amount - b.min_amount);
+            container.innerHTML = sorted.map(plan => {
+                const totalProfit = (plan.daily_profit * plan.duration_days).toFixed(0);
+                const minAmt = plan.min_amount.toLocaleString();
+                const maxAmt = plan.max_amount ? plan.max_amount.toLocaleString() : 'unlimited';
+                return `
+                    <div class="plan-card">
+                        <div class="plan-name">${plan.name}</div>
+                        <div class="plan-price">$${minAmt} - ${maxAmt === 'unlimited' ? 'unlimited' : `$${maxAmt}`}</div>
+                        <div class="plan-feature">${totalProfit}% total profit</div>
+                        <div class="plan-feature">${plan.duration_days} days duration</div>
+                        <div class="plan-feature">Principal included</div>
+                        <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
+                    </div>
+                `;
+            }).join('');
+        } else if (container) {
+            container.innerHTML = '<p>No investment plans available.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading plans:', error);
+        const container = document.getElementById('plansContainer');
+        if (container) container.innerHTML = '<p>Unable to load plans.</p>';
+    }
+}
+
+// Run it when page loads
+loadInvestmentPlans();
+</script>
 </body>
 </html>
