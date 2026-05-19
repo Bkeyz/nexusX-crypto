@@ -18,6 +18,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Public investment plans (no login required)
+app.get('/api/public-plans', async (req, res) => {
+    const { data: plans } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('min_amount', { ascending: true });
+    res.json({ plans: plans || [] });
+});
+
 // Force HTTPS – redirect HTTP to HTTPS (fixes mobile SSL error)
 app.use((req, res, next) => {
     if (req.headers['x-forwarded-proto'] !== 'https' && process.env.NODE_ENV === 'production') {

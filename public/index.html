@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>NexusX - Premium Crypto Investment Platform</title>
+    <title>NexusX - Premium Crypto Investment</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -141,10 +141,6 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s;
         }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(0, 212, 255, 0.3);
-        }
         .feature-icon { font-size: 48px; margin-bottom: 20px; }
         .plans-section {
             max-width: 1200px;
@@ -172,10 +168,6 @@
             text-align: center;
             border: 1px solid rgba(0, 212, 255, 0.2);
             transition: all 0.3s;
-        }
-        .plan-card:hover {
-            transform: scale(1.02);
-            border-color: #00d4ff;
         }
         .plan-name { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
         .plan-price { font-size: 36px; font-weight: 800; color: #00d4ff; margin: 20px 0; }
@@ -307,7 +299,6 @@
         </div>
         <div class="plans-section">
             <h2 class="section-title">Investment Plans</h2>
-            <!-- This container will be filled dynamically -->
             <div class="plans-grid" id="plansContainer">
                 <div class="loading">Loading investment plans...</div>
             </div>
@@ -368,10 +359,10 @@
             } catch (error) { console.error('Price fetch error:', error); }
         }
 
-        // Load investment plans dynamically (show total profit)
+        // Load investment plans from public endpoint (no login needed)
         async function loadInvestmentPlans() {
             try {
-                const response = await fetch(API_URL + '/dashboard');
+                const response = await fetch('/api/public-plans');
                 const data = await response.json();
                 const container = document.getElementById('plansContainer');
                 if (container && data.plans && data.plans.length) {
@@ -387,7 +378,7 @@
                                 <div class="plan-feature">${totalProfit}% total profit</div>
                                 <div class="plan-feature">${plan.duration_days} days duration</div>
                                 <div class="plan-feature">Principal included</div>
-                                <button class="btn btn-outline" style="margin-top:15px; width:100%;" onclick="showDepositModal()">Invest Now</button>
+                                <button class="btn btn-outline" style="margin-top: 15px; width: 100%;" onclick="showDepositModal()">Invest Now</button>
                             </div>
                         `;
                     }).join('');
@@ -401,7 +392,7 @@
             }
         }
 
-        // User functions (register, login, dashboard, deposit, etc.)
+        // User functions (register, login, dashboard, etc.)
         async function register() {
             const full_name = document.getElementById('regName').value;
             const email = document.getElementById('regEmail').value;
@@ -582,7 +573,7 @@
         function switchToLogin() { closeRegisterModal(); showLoginModal(); }
         function logout() { localStorage.removeItem('token'); authToken = null; document.getElementById('landingPage').classList.remove('hidden'); document.getElementById('dashboardPage').classList.add('hidden'); alert('Logged out'); }
 
-        // Initialisation
+        // Initialize
         fetchCryptoPrices();
         setInterval(fetchCryptoPrices, 30000);
         loadInvestmentPlans();   // Load plans on page load
