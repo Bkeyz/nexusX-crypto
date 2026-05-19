@@ -176,23 +176,84 @@ app.get('/api/support/tickets', verifyToken, async (req, res) => {
 
 app.post('/api/invest', verifyToken, async (req, res) => {
     const { planId, amount } = req.body;
+    console.log('Invest request:', { planId, amount, userId: req.user.userId });
     if (!planId || !amount) return res.status(400).json({ error: 'Plan ID and amount required' });
-    const { data: plan } = await supabase.from('plans').select('*').eq('id', planId).single();
-    if (!plan || !plan.is_active) return res.status(404).json({ error: 'Plan not available' });
+    
+    // Get plan details
+    const { data: plan, error: planError } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('id', planId)
+        .single();
+    if (planError || !plan) {
+        console.error('Plan not found:', planError);
+        return res.status(404).json({ error: 'Plan not found' });
+    }
+    if (!plan.is_active) return res.status(400).json({ error: 'Plan not active' });
     if (amount < plan.min_amount) return res.status(400).json({ error: `Minimum $${plan.min_amount}` });
     if (plan.max_amount && amount > plan.max_amount) return res.status(400).json({ error: `Maximum $${plan.max_amount}` });
-    const { data: user } = await supabase.from('users').select('wallet_balance').eq('id', req.user.userId).single();
+    
+    // Get user balance
+    const { data: user } = await supabase
+        .from('users')
+        .select('wallet_balance')
+        .eq('id', req.user.userId)
+        .single();
+    if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.wallet_balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
-    await supabase.from('users').update({ wallet_balance: user.wallet_balance - amount }).eq('id', req.user.userId);
-    const endDate = new Date(); endDate.setDate(endDate.getDate() + plan.duration_days);
-    const { data: investment, error } = await supabase.from('user_investments').insert({ user_id: req.user.userId, plan_id: plan.id, amount, daily_profit_rate: plan.daily_profit, start_date: new Date(), end_date: endDate, last_profit_date: new Date(), status: 'active', total_profit_earned: 0 }).select().single();
-    if (error) {
-        await supabase.from('users').update({ wallet_balance: user.wallet_balance }).eq('id', req.user.userId);
-        return res.status(500).json({ error: 'Investment failed' });
+    
+    // Deduct balance
+    const { error: deductError } = await supabase
+        .from('users')
+        .update({ wallet_balance: user.wallet_balance - amount })
+        .eq('id', req.user.userId);
+    if (deductError) {
+        console.error('Deduct error:', deductError);
+        return res.status(500).json({ error: 'Failed to deduct balance' });
     }
-    await supabase.from('transactions').insert({ user_id: req.user.userId, type: 'investment', amount, status: 'completed', description: `Invested in ${plan.name}` });
+    
+    // Create investment record
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + plan.duration_days);
+    const { data: investment, error: investError } = await supabase
+        .from('user_investments')
+        .insert({
+            user_id: req.user.userId,
+            plan_id: plan.id,
+            amount,
+            daily_profit_rate: plan.daily_profit,
+            start_date: new Date(),
+            end_date: endDate,
+            last_profit_date: new Date(),
+            status: 'active',
+            total_profit_earned: 0
+        })
+        .select()
+        .single();
+    if (investError) {
+        console.error('Investment insert error:', investError);
+        // Refund user
+        await supabase
+            .from('users')
+            .update({ wallet_balance: user.wallet_balance })
+            .eq('id', req.user.userId);
+        return res.status(500).json({ error: 'Investment failed: ' + investError.message });
+    }
+    
+    // Record transaction
+    await supabase
+        .from('transactions')
+        .insert({
+            user_id: req.user.userId,
+            type: 'investment',
+            amount,
+            status: 'completed',
+            description: `Invested in ${plan.name} plan`
+        });
+    
     res.json({ success: true, message: `Invested $${amount} into ${plan.name}`, investment });
 });
+
 
 // ========== ADMIN ROUTES ==========
 app.post('/api/admin/login', async (req, res) => {
