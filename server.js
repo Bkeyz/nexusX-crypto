@@ -10,16 +10,14 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Force HTTPS (optional, but good)
+// Force HTTPS (optional)
 app.use((req, res, next) => {
     if (req.headers['x-forwarded-proto'] !== 'https' && process.env.NODE_ENV === 'production') {
         return res.redirect('https://' + req.headers.host + req.url);
@@ -27,7 +25,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Helper functions
 function generateToken(userId, email, isAdmin, isVerified = true) {
     return jwt.sign({ userId, email, isAdmin, isVerified }, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -93,19 +90,18 @@ async function calculateDailyProfits() {
     console.log('✅ Daily profit calculation done');
 }
 
-// Schedule cron job (00:01 Lagos time)
 cron.schedule('1 0 * * *', async () => {
     await calculateDailyProfits();
 }, { timezone: "Africa/Lagos" });
 
-// ========== PUBLIC ROUTES ==========
+// ========== PUBLIC ==========
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.get('/api/public-plans', async (req, res) => {
     const { data: plans } = await supabase.from('plans').select('*').eq('is_active', true).order('min_amount');
     res.json({ plans: plans || [] });
 });
 
-// ========== USER ROUTES ==========
+// ========== USER ==========
 app.post('/api/register', async (req, res) => {
     const { full_name, email, password } = req.body;
     if (!full_name || !email || !password) return res.status(400).json({ error: 'All fields required' });
@@ -176,91 +172,46 @@ app.get('/api/support/tickets', verifyToken, async (req, res) => {
 
 app.post('/api/invest', verifyToken, async (req, res) => {
     const { planId, amount } = req.body;
-    console.log('Invest request:', { planId, amount, userId: req.user.userId });
     if (!planId || !amount) return res.status(400).json({ error: 'Plan ID and amount required' });
-    
-    // Get plan details
-    const { data: plan, error: planError } = await supabase
-        .from('plans')
-        .select('*')
-        .eq('id', planId)
-        .single();
-    if (planError || !plan) {
-        console.error('Plan not found:', planError);
-        return res.status(404).json({ error: 'Plan not found' });
-    }
+    const { data: plan } = await supabase.from('plans').select('*').eq('id', planId).single();
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
     if (!plan.is_active) return res.status(400).json({ error: 'Plan not active' });
     if (amount < plan.min_amount) return res.status(400).json({ error: `Minimum $${plan.min_amount}` });
     if (plan.max_amount && amount > plan.max_amount) return res.status(400).json({ error: `Maximum $${plan.max_amount}` });
-    
-    // Get user balance
-    const { data: user } = await supabase
-        .from('users')
-        .select('wallet_balance')
-        .eq('id', req.user.userId)
-        .single();
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { data: user } = await supabase.from('users').select('wallet_balance').eq('id', req.user.userId).single();
     if (user.wallet_balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
-    
-    // Deduct balance
-    const { error: deductError } = await supabase
-        .from('users')
-        .update({ wallet_balance: user.wallet_balance - amount })
-        .eq('id', req.user.userId);
-    if (deductError) {
-        console.error('Deduct error:', deductError);
-        return res.status(500).json({ error: 'Failed to deduct balance' });
+    await supabase.from('users').update({ wallet_balance: user.wallet_balance - amount }).eq('id', req.user.userId);
+    const endDate = new Date(); endDate.setDate(endDate.getDate() + plan.duration_days);
+    const { data: investment, error } = await supabase.from('user_investments').insert({
+        user_id: req.user.userId,
+        plan_id: plan.id,
+        amount,
+        daily_profit_rate: plan.daily_profit,
+        start_date: new Date(),
+        end_date: endDate,
+        last_profit_date: new Date(),
+        status: 'active',
+        total_profit_earned: 0
+    }).select().single();
+    if (error) {
+        await supabase.from('users').update({ wallet_balance: user.wallet_balance }).eq('id', req.user.userId);
+        return res.status(500).json({ error: 'Investment failed: ' + error.message });
     }
-    
-    // Create investment record
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + plan.duration_days);
-    const { data: investment, error: investError } = await supabase
-        .from('user_investments')
-        .insert({
-            user_id: req.user.userId,
-            plan_id: plan.id,
-            amount,
-            daily_profit_rate: plan.daily_profit,
-            start_date: new Date(),
-            end_date: endDate,
-            last_profit_date: new Date(),
-            status: 'active',
-            total_profit_earned: 0
-        })
-        .select()
-        .single();
-    if (investError) {
-        console.error('Investment insert error:', investError);
-        // Refund user
-        await supabase
-            .from('users')
-            .update({ wallet_balance: user.wallet_balance })
-            .eq('id', req.user.userId);
-        return res.status(500).json({ error: 'Investment failed: ' + investError.message });
-    }
-    
-    // Record transaction
-    await supabase
-        .from('transactions')
-        .insert({
-            user_id: req.user.userId,
-            type: 'investment',
-            amount,
-            status: 'completed',
-            description: `Invested in ${plan.name} plan`
-        });
-    
+    await supabase.from('transactions').insert({
+        user_id: req.user.userId,
+        type: 'investment',
+        amount,
+        status: 'completed',
+        description: `Invested in ${plan.name}`
+    });
     res.json({ success: true, message: `Invested $${amount} into ${plan.name}`, investment });
 });
 
-
-// ========== ADMIN ROUTES ==========
+// ========== ADMIN ==========
 app.post('/api/admin/login', async (req, res) => {
     const { email, password } = req.body;
     const { data: admin } = await supabase.from('users').select('*').eq('email', email).eq('is_admin', true).single();
     if (!admin) return res.status(401).json({ error: 'Admin access only' });
-    // hardcoded bypass for demo
     if (email === 'admin@nexusx.com' && password === 'admin123') {
         const token = generateToken(admin.id, admin.email, true);
         return res.json({ success: true, token, admin: { id: admin.id, full_name: admin.full_name, email: admin.email } });
@@ -292,55 +243,78 @@ app.post('/api/admin/user-action', verifyToken, requireAdmin, async (req, res) =
     res.json({ success: true, message: `${msg} for ${email}` });
 });
 
-// Other admin endpoints (deposits, withdrawals, tickets, plans) – keep as in previous version
-// I'll include minimal but functional versions:
 app.get('/api/admin/pending-deposits', verifyToken, requireAdmin, async (req, res) => {
     const { data: deposits } = await supabase.from('deposits').select('*, users(full_name, email)').eq('status', 'pending');
     res.json({ deposits: deposits || [] });
 });
+
 app.post('/api/admin/approve-deposit', verifyToken, requireAdmin, async (req, res) => {
     const { transaction_id, user_id, amount } = req.body;
     await supabase.from('deposits').update({ status: 'approved', processed_at: new Date() }).eq('id', transaction_id);
     const { data: user } = await supabase.from('users').select('wallet_balance, total_deposited').eq('id', user_id).single();
     await supabase.from('users').update({ wallet_balance: user.wallet_balance + amount, total_deposited: (user.total_deposited || 0) + amount }).eq('id', user_id);
+    // ✅ Insert transaction record
+    await supabase.from('transactions').insert({
+        user_id: user_id,
+        type: 'deposit',
+        amount: amount,
+        status: 'completed',
+        description: 'Deposit approved by admin'
+    });
     res.json({ success: true });
 });
+
 app.get('/api/admin/pending-withdrawals', verifyToken, requireAdmin, async (req, res) => {
     const { data: withdrawals } = await supabase.from('withdrawals').select('*, users(full_name, email)').eq('status', 'pending');
     res.json({ withdrawals: withdrawals || [] });
 });
+
 app.post('/api/admin/approve-withdrawal', verifyToken, requireAdmin, async (req, res) => {
     const { withdrawal_id, user_id, amount } = req.body;
     await supabase.from('withdrawals').update({ status: 'approved', processed_at: new Date() }).eq('id', withdrawal_id);
     const { data: user } = await supabase.from('users').select('wallet_balance, total_withdrawn').eq('id', user_id).single();
     await supabase.from('users').update({ wallet_balance: user.wallet_balance - amount, total_withdrawn: (user.total_withdrawn || 0) + amount }).eq('id', user_id);
+    // ✅ Insert transaction record
+    await supabase.from('transactions').insert({
+        user_id: user_id,
+        type: 'withdrawal',
+        amount: amount,
+        status: 'completed',
+        description: 'Withdrawal approved by admin'
+    });
     res.json({ success: true });
 });
+
 app.get('/api/admin/tickets', verifyToken, requireAdmin, async (req, res) => {
     const { data: tickets } = await supabase.from('tickets').select('*, users(full_name, email)').order('created_at', { ascending: false });
     res.json({ tickets: tickets || [] });
 });
+
 app.post('/api/admin/reply-ticket', verifyToken, requireAdmin, async (req, res) => {
     const { ticket_id, reply } = req.body;
     await supabase.from('tickets').update({ admin_reply: reply, status: 'closed', updated_at: new Date() }).eq('id', ticket_id);
     res.json({ success: true });
 });
+
 app.get('/api/admin/plans', verifyToken, requireAdmin, async (req, res) => {
     const { data: plans } = await supabase.from('plans').select('*').order('min_amount');
     res.json({ plans: plans || [] });
 });
+
 app.post('/api/admin/update-plan', verifyToken, requireAdmin, async (req, res) => {
     const { id, name, min_amount, max_amount, daily_profit, duration_days, is_active } = req.body;
     const { data: updated, error } = await supabase.from('plans').update({ name, min_amount, max_amount: max_amount || null, daily_profit, duration_days, is_active }).eq('id', id).select().single();
     if (error) return res.status(500).json({ error: 'Update failed' });
     res.json({ success: true, plan: updated });
 });
+
 app.post('/api/admin/create-plan', verifyToken, requireAdmin, async (req, res) => {
     const { name, min_amount, max_amount, daily_profit, duration_days } = req.body;
     const { data: newPlan, error } = await supabase.from('plans').insert({ name, min_amount, max_amount: max_amount || null, daily_profit, duration_days, is_active: true }).select().single();
     if (error) return res.status(500).json({ error: 'Create failed' });
     res.json({ success: true, plan: newPlan });
 });
+
 app.post('/api/admin/calculate-profits', verifyToken, requireAdmin, async (req, res) => {
     await calculateDailyProfits();
     res.json({ success: true });
@@ -350,5 +324,4 @@ app.post('/api/admin/calculate-profits', verifyToken, requireAdmin, async (req, 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-// Start server
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
